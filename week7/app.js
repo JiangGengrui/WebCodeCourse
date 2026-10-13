@@ -1,15 +1,33 @@
 // ============================================================
-// app.js —— 待办事项 V2.0（第 1 步：引入单一数据源）
+// app.js —— 待办事项 V2.0（第 2 步：加上 localStorage 持久化）
 //
-// 把「DOM 即数据源」改成「todos 是唯一数据源，DOM 只是它的投影」：
-// 任何操作都先改数据、再整表重画，不再直接增删 DOM 节点。
+// 数据已经集中到 todos 里，持久化就变得很简单：
+// 只要保证「任何一次数据变更之后都调用 save()」，刷新就能恢复。
 // ============================================================
+
+const KEY = 'todos';                  // 存储的键名
 
 const list   = document.querySelector('#todo-list');
 const input  = document.querySelector('#todo-input');
 const addBtn = document.querySelector('#add-btn');
 
-let todos = [];                       // 单一数据源
+let todos = load();                   // 启动时从 localStorage 恢复
+
+// ---------------- 存 / 取 ----------------
+function save() {
+    localStorage.setItem(KEY, JSON.stringify(todos));
+}
+
+function load() {
+    const raw = localStorage.getItem(KEY);
+    if (raw === null) return [];      // 没存过 → 空数组
+    try {
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : [];   // 数据被改坏时不崩
+    } catch (e) {
+        return [];
+    }
+}
 
 // ---------------- render：清空 → 按 todos 重建 ----------------
 function render() {
@@ -44,17 +62,17 @@ function render() {
     }
 }
 
-// ---------------- 操作：改数据 → render ----------------
+// ---------------- 操作：改数据 → save → render ----------------
 function addTodo(text) {              // 添加：展开，生成新数组
     const v = text.trim();
     if (v === '') { input.focus(); return; }     // 空输入（含纯空格）拦截
     todos = [...todos, { id: Date.now(), text: v, completed: false }];
-    render();
+    save(); render();
 }
 
 function removeTodo(id) {             // 删除：filter，生成新数组
     todos = todos.filter(t => t.id !== id);
-    render();
+    save(); render();
 }
 
 // ---------------- 事件绑定 ----------------
