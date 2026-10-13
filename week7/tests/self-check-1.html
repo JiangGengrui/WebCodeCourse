@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>V2.0 自检 ① 三个操作 + 筛选 + 持久化写入</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<main class="todo-card">
+    <h1>待办事项 V2.0</h1>
+    <div class="todo-input">
+        <input type="text" id="todo-input" placeholder="输入待办事项，回车或点添加">
+        <button type="button" id="add-btn">添加</button>
+    </div>
+    <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">全部</button>
+        <button type="button" class="filter-btn" data-filter="active">未完成</button>
+        <button type="button" class="filter-btn" data-filter="done">已完成</button>
+        <span id="todo-count" class="todo-count"></span>
+    </div>
+    <ul id="todo-list" class="todo-list"></ul>
+    <pre id="RESULT" style="display:none"></pre>
+</main>
+
+<script src="../app.js"></script>
+<script>
+(function () {
+    const log = [];
+    let pass = 0, fail = 0;
+    const P = (name, cond, extra) => {
+        (cond ? pass++ : fail++);
+        log.push((cond ? 'PASS  ' : 'FAIL  ') + name + (extra !== undefined ? '  → ' + extra : ''));
+    };
+    const items = () => [...document.querySelectorAll('#todo-list li')];
+    const real  = () => items().filter(li => !li.classList.contains('todo-empty'));
+    const texts = () => real().map(li => li.querySelector('span').textContent);
+    const add   = (v) => { input.value = v; addBtn.click(); };
+
+    P('初始列表显示空态', items().length === 1 && items()[0].classList.contains('todo-empty'), items()[0] && items()[0].textContent);
+    P('初始 localStorage 无 todos', localStorage.getItem('todos') === null);
+
+    // —— 添加 ——
+    add('写实验报告');
+    P('添加：列表出现 1 项', real().length === 1, texts().join(','));
+    P('添加：输入框已清空', input.value === '');
+    P('添加：已写入 localStorage', localStorage.getItem('todos') !== null);
+
+    // —— 空输入（纯空格）——
+    add('    ');
+    P('空输入：纯空格不添加', real().length === 1, real().length + ' 项');
+
+    add('复习CSS Grid');
+    add('提交Git仓库');
+    P('连续添加：共 3 项', real().length === 3, texts().join(' | '));
+    const ids = JSON.parse(localStorage.getItem('todos')).map(t => t.id);
+    P('连续添加：3 个 id 互不相同', new Set(ids).size === ids.length, ids.join(','));
+
+    // —— 切换 ——
+    real()[1].click();
+    P('切换：第 2 项 class 变 done', real()[1].classList.contains('done'));
+    P('切换：数据中 completed=true', JSON.parse(localStorage.getItem('todos'))[1].completed === true);
+    P('切换：计数文本正确', document.querySelector('#todo-count').textContent === '共 3 项，已完成 1 项',
+      document.querySelector('#todo-count').textContent);
+
+    // —— 筛选（视图状态）——
+    setFilter('done');
+    P('筛选 done：只显示 1 项', real().length === 1, texts().join(','));
+    setFilter('active');
+    P('筛选 active：显示 2 项', real().length === 2, texts().join(','));
+    setFilter('all');
+    P('筛选 all：显示 3 项', real().length === 3, texts().join(','));
+    P('筛选不写存储：只有 todos 一个键', localStorage.length === 1, 'localStorage.length=' + localStorage.length);
+
+    // —— 删除 ——
+    const before = real().length;
+    real()[0].querySelector('.del-btn').click();
+    P('删除：少 1 项', real().length === before - 1, texts().join(','));
+    P('删除：已同步 localStorage', JSON.parse(localStorage.getItem('todos')).length === real().length);
+
+    // —— 记录3：clearCompleted（控制台调用的那种调用方式）——
+    const beforeCC = real().length;
+    clearCompleted();
+    P('clearCompleted：已完成项被删除', real().length === beforeCC - 1 &&
+      JSON.parse(localStorage.getItem('todos')).every(t => !t.completed), texts().join(','));
+    P('clearCompleted：计数同步', document.querySelector('#todo-count').textContent.indexOf('已完成 0 项') > -1,
+      document.querySelector('#todo-count').textContent);
+
+    // —— 留一组固定数据给 self-check-2.html 验证「刷新后仍在」——
+    add('写实验报告');
+    real()[0].click();                       // 把第一项标为已完成
+    log.push('--- 收尾状态 ---');
+    log.push('todos = ' + localStorage.getItem('todos'));
+
+    document.getElementById('RESULT').textContent =
+        '===RESULT-S1===\n' + log.join('\n') + '\nPASS=' + pass + ' FAIL=' + fail + '\n===END===';
+})();
+</script>
+</body>
+</html>

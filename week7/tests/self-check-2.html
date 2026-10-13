@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>V2.0 自检 ② 刷新后恢复（模拟 F5）</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<main class="todo-card">
+    <h1>待办事项 V2.0</h1>
+    <div class="todo-input">
+        <input type="text" id="todo-input" placeholder="输入待办事项，回车或点添加">
+        <button type="button" id="add-btn">添加</button>
+    </div>
+    <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">全部</button>
+        <button type="button" class="filter-btn" data-filter="active">未完成</button>
+        <button type="button" class="filter-btn" data-filter="done">已完成</button>
+        <span id="todo-count" class="todo-count"></span>
+    </div>
+    <ul id="todo-list" class="todo-list"></ul>
+    <pre id="RESULT" style="display:none"></pre>
+</main>
+
+<script src="../app.js"></script>
+<script>
+(function () {
+    const log = [];
+    let pass = 0, fail = 0;
+    const P = (name, cond, extra) => {
+        (cond ? pass++ : fail++);
+        log.push((cond ? 'PASS  ' : 'FAIL  ') + name + (extra !== undefined ? '  → ' + extra : ''));
+    };
+    const raw = JSON.parse(localStorage.getItem('todos') || '[]');
+    const items = [...document.querySelectorAll('#todo-list li')]
+        .filter(li => !li.classList.contains('todo-empty'));
+
+    P('刷新后 localStorage 仍有数据', raw.length === 2, JSON.stringify(raw.map(t => t.text)));
+    P('刷新后页面重画出 2 项', items.length === 2, items.map(li => li.querySelector('span').textContent).join(' | '));
+    P('刷新后已完成状态保留', items.filter(li => li.classList.contains('done')).length === 1,
+      items.map(li => li.classList.contains('done')).join(','));
+    P('刷新后计数文本恢复', document.querySelector('#todo-count').textContent === '共 2 项，已完成 1 项',
+      document.querySelector('#todo-count').textContent);
+    P('刷新后筛选项回到 all（active 按钮是「全部」）',
+      document.querySelector('.filter-btn.active').dataset.filter === 'all',
+      document.querySelector('.filter-btn.active').textContent);
+    P('存储里只有 todos，没有 filter', localStorage.length === 1 && localStorage.getItem('filter') === null,
+      'keys=' + JSON.stringify(Object.keys(localStorage)));
+
+    document.getElementById('RESULT').textContent =
+        '===RESULT-S2===\n' + log.join('\n') + '\nPASS=' + pass + ' FAIL=' + fail + '\n===END===';
+})();
+</script>
+</body>
+</html>

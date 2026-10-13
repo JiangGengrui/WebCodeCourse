@@ -1,5 +1,6 @@
 /* ============================================================
-   style.css —— 待办事项 V1.0 样式
+   style.css —— 待办事项 V2.0 样式
+   在 V1.0 基础上增加：筛选栏、计数、已完成样式
    ============================================================ */
 
 * { box-sizing: border-box; }
@@ -56,6 +57,38 @@ body {
 
 .todo-input button:hover { background-color: #2f5bab; }
 
+/* 筛选栏 */
+.filters {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eef2f8;
+}
+
+.filter-btn {
+    padding: 0.25rem 0.7rem;
+    border: 1px solid #dde6f5;
+    border-radius: 999px;
+    background-color: #fff;
+    color: #4874CB;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.filter-btn.active {
+    background-color: #4874CB;
+    border-color: #4874CB;
+    color: #fff;
+}
+
+.todo-count {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: #8a97a8;
+}
+
 /* 列表 */
 .todo-list {
     list-style: none;
@@ -71,16 +104,24 @@ body {
     padding: 0.5rem 0.6rem;
     border-bottom: 1px solid #eef2f8;
     line-height: 1.5;
+    cursor: pointer;
 }
 
 .todo-list li:last-child { border-bottom: none; }
 
 .todo-list li span { word-break: break-word; }
 
+/* 已完成：删除线 + 变灰 */
+.todo-list li.done span {
+    text-decoration: line-through;
+    color: #98a4b3;
+}
+
 .todo-list .todo-empty {
     color: #999;
     text-align: center;
     justify-content: center;
+    cursor: default;
 }
 
 .todo-list .del-btn {
