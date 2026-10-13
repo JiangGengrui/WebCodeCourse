@@ -1,57 +1,74 @@
 // ============================================================
-// app.js —— V1.0：待办事项的「添加」与「删除」
-// 此时 DOM 就是数据源：列表项直接 appendChild 进 <ul>，
-// 删除时把节点 remove() 掉。没有独立的数据层，也没有存储。
+// app.js —— 待办事项 V2.0（第 1 步：引入单一数据源）
+//
+// 把「DOM 即数据源」改成「todos 是唯一数据源，DOM 只是它的投影」：
+// 任何操作都先改数据、再整表重画，不再直接增删 DOM 节点。
 // ============================================================
 
-(function () {
-    'use strict';
+const list   = document.querySelector('#todo-list');
+const input  = document.querySelector('#todo-input');
+const addBtn = document.querySelector('#add-btn');
 
-    var input = document.getElementById('todo-input');
-    var list = document.getElementById('todo-list');
-    var addBtn = document.getElementById('add-btn');
+let todos = [];                       // 单一数据源
 
-    // 添加一条待办
-    function addTodo() {
-        // trim 去掉首尾空白，空内容直接拦截
-        var text = input.value.trim();
-        if (text === '') {
-            input.focus();
-            return;
-        }
+// ---------------- render：清空 → 按 todos 重建 ----------------
+function render() {
+    list.innerHTML = '';              // 清空 → 整表重画，DOM 不再有「旧状态」
 
-        // 用 DOM API + textContent，用户输入当纯文本处理，杜绝 XSS
-        var li = document.createElement('li');
+    todos.forEach(t => {
+        const li = document.createElement('li');
+        li.dataset.id = t.id;         // li 记住自己的 id
 
-        var span = document.createElement('span');
-        span.textContent = text;        // 不解析 HTML，安全
+        const span = document.createElement('span');
+        span.textContent = t.text;    // 用 textContent，杜绝 XSS
+        li.appendChild(span);
 
-        var delBtn = document.createElement('button');
+        const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'del-btn';
-        delBtn.textContent = '删除';
-
-        li.appendChild(span);
+        delBtn.textContent = '×';
+        delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();      // 防止顺带触发 li 的点击
+            removeTodo(t.id);
+        });
         li.appendChild(delBtn);
+
         list.appendChild(li);
+    });
 
-        input.value = '';
-        input.focus();
+    if (todos.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'todo-empty';
+        li.textContent = '暂无任务';
+        list.appendChild(li);
     }
+}
 
-    // 事件委托：只绑定一次，动态新增的 li 也能响应删除
-    list.addEventListener('click', function (e) {
-        var target = e.target;
-        if (target && target.classList.contains('del-btn')) {
-            target.parentNode.remove();
-        }
-    });
+// ---------------- 操作：改数据 → render ----------------
+function addTodo(text) {              // 添加：展开，生成新数组
+    const v = text.trim();
+    if (v === '') { input.focus(); return; }     // 空输入（含纯空格）拦截
+    todos = [...todos, { id: Date.now(), text: v, completed: false }];
+    render();
+}
 
-    addBtn.addEventListener('click', addTodo);
+function removeTodo(id) {             // 删除：filter，生成新数组
+    todos = todos.filter(t => t.id !== id);
+    render();
+}
 
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-            addTodo();
-        }
-    });
-})();
+// ---------------- 事件绑定 ----------------
+addBtn.addEventListener('click', () => {
+    addTodo(input.value);
+    input.value = '';
+});
+
+input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        addTodo(input.value);
+        input.value = '';
+    }
+});
+
+// 首屏渲染
+render();
