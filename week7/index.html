@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办事项 V1.0</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main class="todo-card">
+    <h1>待办事项 V1.0</h1>
+
+    <div class="todo-input">
+        <input type="text" id="todo-input" placeholder="输入待办事项，回车或点添加">
+        <button type="button" id="add-btn">添加</button>
+    </div>
+
+    <ul id="todo-list" class="todo-list"></ul>
+</main>
+
+<!-- 脚本放在 body 末尾，执行时 DOM 已就绪 -->
+<script src="app.js"></script>
+</body>
+</html>

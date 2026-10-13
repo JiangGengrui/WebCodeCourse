@@ -1,0 +1,96 @@
+/* ============================================================
+   style.css —— 待办事项 V1.0 样式
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    background-color: #f3f6fb;
+    color: #1f2d3d;
+}
+
+.todo-card {
+    max-width: 40rem;
+    margin: 0 auto;
+    background-color: #fff;
+    border: 1px solid #dde6f5;
+    border-radius: 8px;
+    padding: 1.25rem 1.25rem 1rem;
+    box-shadow: 0 1px 3px rgba(24, 60, 120, .08);
+}
+
+.todo-card h1 {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    color: #4874CB;
+}
+
+/* 输入区 */
+.todo-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.todo-input input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #dde6f5;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.todo-input button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    background-color: #4874CB;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.todo-input button:hover { background-color: #2f5bab; }
+
+/* 列表 */
+.todo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.todo-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid #eef2f8;
+    line-height: 1.5;
+}
+
+.todo-list li:last-child { border-bottom: none; }
+
+.todo-list li span { word-break: break-word; }
+
+.todo-list .todo-empty {
+    color: #999;
+    text-align: center;
+    justify-content: center;
+}
+
+.todo-list .del-btn {
+    border: none;
+    background: transparent;
+    color: #c0392b;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+
+.todo-list .del-btn:hover { text-decoration: underline; }
