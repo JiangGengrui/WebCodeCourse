@@ -3,17 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>待办事项 V1.0</title>
+    <title>待办事项 V2.0 —— 数据驱动 + 持久化</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <main class="todo-card">
-    <h1>待办事项 V1.0</h1>
+    <h1>待办事项 V2.0</h1>
 
     <div class="todo-input">
         <input type="text" id="todo-input" placeholder="输入待办事项，回车或点添加">
         <button type="button" id="add-btn">添加</button>
+    </div>
+
+    <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">全部</button>
+        <button type="button" class="filter-btn" data-filter="active">未完成</button>
+        <button type="button" class="filter-btn" data-filter="done">已完成</button>
+        <span id="todo-count" class="todo-count"></span>
     </div>
 
     <ul id="todo-list" class="todo-list"></ul>

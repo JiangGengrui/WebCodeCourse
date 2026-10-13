@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI 第一版缺陷复现（对照用）</title>
+</head>
+<body>
+<ul id="todo-list"></ul>
+<input id="todo-input">
+<button id="add-btn">添加</button>
+<pre id="RESULT" style="display:none"></pre>
+
+<script src="../reference/app-ai-v1.js"></script>
+<script>
+(function () {
+    const log = [];
+    const P = (name, detail) => log.push(name + '  → ' + detail);
+    const items = () => [...document.querySelectorAll('#todo-list li')];
+
+    // ① push 就地修改 + 忘 save()
+    const ref0 = todos;
+    addTodo('任务A'); addTodo('任务B'); addTodo('任务C');
+    P('① 忘 save()：添加 3 项后 localStorage', localStorage.getItem('todos') === null
+        ? '仍为 null —— 数据没落盘，刷新即丢' : localStorage.getItem('todos'));
+    P('① push 就地修改：todos 数组引用', ref0 === todos ? '前后同一个数组（就地修改）' : '已生成新数组');
+    P('① 同一毫秒内 3 次 Date.now() 得到的 id',
+        JSON.stringify(todos.map(t => t.id)) + '（若重复，toggle/remove 会一次误伤多条）');
+
+    // ⑥ 无空输入拦截
+    const n1 = todos.length;
+    addTodo('   ');
+    P('⑥ 纯空格输入：todos 条数', n1 + ' → ' + todos.length + '，最后一条 text=' +
+        JSON.stringify(todos[todos.length - 1].text) + '（空任务被加进去了）');
+
+    // ③ toggleTodo 直接改对象属性
+    const target = todos[0];
+    toggleTodo(target.id);
+    P('③ toggle 后原对象是否被就地改动',
+        target.completed === true ? '原对象 completed 被直接改成 true（就地污染）' : '未改动');
+
+    // ② splice 就地删除
+    const ref2 = todos;
+    removeTodo(todos[0].id);
+    P('② splice 删除后 todos 数组引用', ref2 === todos ? '仍是同一个数组（就地修改）' : '已生成新数组');
+
+    // ⑤ 增量渲染：切筛选后旧节点残留（用不重复的 id 单独试，排除 id 碰撞干扰）
+    list.innerHTML = '';
+    todos = [{ id: 1, text: '已完成项', completed: true },
+             { id: 2, text: '未完成项', completed: false }];
+    render();
+    P('⑤ 初始渲染 li 数（应为 2）', items().length);
+    setFilter('active');
+    P('⑤ 切到 active 后 li 数（应只剩「未完成项」= 1）', items().length + '，实际列出：' +
+        JSON.stringify(items().map(li => li.textContent)));
+
+    // ④ 视图状态被持久化
+    P('④ setFilter 之后 localStorage 的键', JSON.stringify(Object.keys(localStorage)) +
+        '，filter=' + JSON.stringify(localStorage.getItem('filter')) + '（刷新后不会回到 all）');
+
+    document.getElementById('RESULT').textContent =
+        '===RESULT-AI===\n' + log.join('\n') + '\n===END===';
+})();
+</script>
+</body>
+</html>
