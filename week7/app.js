@@ -96,14 +96,21 @@ function addTodo(text) {                             // 添加：展开
     save(); render();
 }
 
+// dataset 读出来永远是字符串，而 todos 里的 id 是数字（Date.now()）。
+// 直接写 t.id !== id 会「永远不相等」—— 删除删不掉、切换没反应，
+// 而且不报错，是最难查的一类静默失败。统一比较前先归一化成字符串。
+function sameId(a, b) {
+    return String(a) === String(b);
+}
+
 function removeTodo(id) {                            // 删除：filter
-    todos = todos.filter(t => t.id !== id);
+    todos = todos.filter(t => !sameId(t.id, id));
     save(); render();
 }
 
 function toggleTodo(id) {                            // 切换：map + 展开
     todos = todos.map(t =>
-        t.id === id ? { ...t, completed: !t.completed } : t);
+        sameId(t.id, id) ? { ...t, completed: !t.completed } : t);
     save(); render();
 }
 
@@ -134,6 +141,29 @@ input.addEventListener('keydown', (e) => {
 
 document.querySelectorAll('.filter-btn').forEach(b =>
     b.addEventListener('click', () => setFilter(b.dataset.filter)));
+
+// ---------------- ⑧ 事件委托：整个列表只留这一个监听器 ----------------
+// 绑在 ul 上，而不是绑在每个 li 上：
+//   · ul 不会被 render() 重画，监听器不会跟着丢
+//   · 新增的 li 天然被覆盖，不需要补绑
+// 靠冒泡收到事件后，用 e.target 判断「真正被点的是谁」。
+list.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element)) return;      // ① 防：target 不是元素
+
+    const item = e.target.closest('li');
+    if (!item || !list.contains(item)) return;       // ② 防：点空白 → null；③ 防：越界
+
+    const id = item.dataset.id;
+    if (!id) return;                                 // ④ 防：li 上没有 data-id（如空态提示）
+
+    // 分流：删除与切换互斥，命中删除就不再切换
+    const delBtn = e.target.closest('[data-action="delete"]');
+    if (delBtn && item.contains(delBtn)) {
+        removeTodo(id);
+        return;
+    }
+    toggleTodo(id);
+});
 
 // 首屏渲染
 render();
