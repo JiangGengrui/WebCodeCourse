@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>任务3 自检 · 编辑分支七个场景</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+    #RESULT { display: none; }
+    #console-view {
+        max-width: 40rem; margin: 1rem auto 0; padding: .75rem 1rem;
+        background: #1e1e1e; color: #d4d4d4; font: 12px/1.7 Consolas, monospace;
+        border-radius: 6px; white-space: pre-wrap;
+    }
+</style>
+</head>
+<body>
+
+<main class="todo-card">
+    <h1>待办事项 V2.1 · 编辑分支自检</h1>
+    <div class="todo-input">
+        <input type="text" id="todo-input" placeholder="输入待办事项，回车或点添加">
+        <button type="button" id="add-btn">添加</button>
+    </div>
+    <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">全部</button>
+        <button type="button" class="filter-btn" data-filter="active">未完成</button>
+        <button type="button" class="filter-btn" data-filter="done">已完成</button>
+        <span id="todo-count" class="todo-count"></span>
+    </div>
+    <ul id="todo-list" class="todo-list"></ul>
+</main>
+
+<pre id="RESULT"></pre>
+<div id="console-view"></div>
+
+<script>
+// 在 app.js 之前挂钩：统计监听器、采集 console.log 与报错、把 prompt 打桩
+window.__bound = [];
+window.__errors = [];
+window.__log = [];
+window.__promptQueue = [];
+window.__promptArgs = [];
+(function () {
+    const _add = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function (type, fn, opt) {
+        const t = this;
+        let name = String(t);
+        if (t === window) name = 'window';
+        else if (t && t.tagName) {
+            name = t.tagName.toLowerCase();
+            if (t.id) name += '#' + t.id;
+            if (typeof t.className === 'string' && t.className.trim()) {
+                name += '.' + t.className.trim().split(/\s+/).join('.');
+            }
+        }
+        window.__bound.push(name + ' ← ' + type);
+        return _add.call(this, type, fn, opt);
+    };
+    const _log = console.log;
+    console.log = function () {
+        window.__log.push([].slice.call(arguments).join(' '));
+        _log.apply(console, arguments);
+    };
+    window.addEventListener('error', function (e) {
+        window.__errors.push(e.message);
+    });
+    // 真人点「取消」返回 null，点「确定」返回输入框里的字符串
+    window.prompt = function (msg, def) {
+        window.__promptArgs.push({ msg: msg, def: def });
+        return window.__promptQueue.length ? window.__promptQueue.shift() : null;
+    };
+})();
+</script>
+
+<script src="../app.js"></script>
+
+<script>
+(function () {
+    const L = [];
+    let pass = 0, fail = 0;
+    const P = (name, cond, extra) => {
+        cond ? pass++ : fail++;
+        L.push((cond ? 'PASS  ' : 'FAIL  ') + name + (extra !== undefined ? '  → ' + extra : ''));
+    };
+
+    const items = () => [...document.querySelectorAll('#todo-list li')]
+        .filter(li => !li.classList.contains('todo-empty'));
+    const texts = () => items().map(li => li.querySelector('span').textContent);
+    const add = (v) => { input.value = v; addBtn.click(); };
+    const click = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    const takeLog = () => { const a = window.__log.slice(); window.__log.length = 0; return a; };
+    const stored = () => JSON.parse(localStorage.getItem('todos'));
+    const byText = (s) => stored().filter(t => t.text === s)[0];
+
+    // 给删除和切换插桩，用来判断「一次点击到底调用了谁」。
+    // 编辑不用插桩：updateTodo 里本来就有一行 console.log('[edit]', ...)
+    const _rm = window.removeTodo, _tg = window.toggleTodo;
+    window.removeTodo = function (id) { window.__log.push('[delete] ' + id); return _rm(id); };
+    window.toggleTodo = function (id) { window.__log.push('[toggle] ' + id); return _tg(id); };
+
+    // 编辑按钮长出来了没有
+    add('买牛奶');
+    add('写实验报告');
+    add('跑步 3 公里');
+    P('每条任务都有编辑按钮', items().every(li => !!li.querySelector('[data-action="edit"]')),
+      items().map(li => li.querySelectorAll('button').length + '个按钮').join(' | '));
+    P('编辑按钮带着 data-action="edit"',
+      items()[0].querySelector('.edit-btn').dataset.action === 'edit',
+      items()[0].querySelector('.edit-btn').outerHTML);
+
+    // ---------- 场景 1：点任务文字，仍然只切换 ----------
+    takeLog();
+    click(items()[1].querySelector('span'));
+    let log1 = takeLog();
+    P('场景1 点文字：切换完成状态',
+      byText('写实验报告').completed === true, 'completed=' + byText('写实验报告').completed);
+    P('场景1 点文字：只调用 toggle，没有弹编辑框',
+      log1.length === 1 && log1[0].indexOf('[toggle]') === 0 && window.__promptArgs.length === 0,
+      log1.join(' / ') + ' | prompt 调用 ' + window.__promptArgs.length + ' 次');
+
+    // ---------- 场景 2：点删除，只删除（任务 2 的坑不能复发） ----------
+    takeLog();
+    const before2 = items().length;
+    click(items()[2].querySelector('.del-btn'));
+    let log2 = takeLog();
+    P('场景2 点删除：条数 -1', items().length === before2 - 1, before2 + ' → ' + items().length);
+    P('场景2 点删除：只打印 [delete] 一行',
+      log2.length === 1 && log2[0].indexOf('[delete]') === 0, log2.join(' / '));
+
+    // ---------- 场景 3：正常编辑 ----------
+    window.__promptQueue.push('买两瓶牛奶');
+    window.__promptArgs.length = 0;
+    takeLog();
+    click(items()[0].querySelector('.edit-btn'));
+    let log3 = takeLog();
+    const a3 = window.__promptArgs[0] || {};
+    P('场景3 编辑：默认值填的是当前文本', a3.def === '买牛奶', 'prompt 默认值=' + a3.def);
+    P('场景3 编辑：界面文本已改', texts()[0] === '买两瓶牛奶', texts().join(' | '));
+    P('场景3 编辑：localStorage 已改',
+      !!byText('买两瓶牛奶') && !byText('买牛奶'), JSON.stringify(stored().map(t => t.text)));
+    P('场景3 编辑：只调用一次 edit，没有顺带 toggle',
+      log3.length === 1 && log3[0].indexOf('[edit]') === 0, log3.join(' / '));
+
+    // ---------- 场景 4：点取消（prompt 返回 null） ----------
+    window.__promptQueue.push(null);
+    takeLog();
+    const txt4 = texts()[0];
+    click(items()[0].querySelector('.edit-btn'));
+    let log4 = takeLog();
+    P('场景4 取消：文本没变', texts()[0] === txt4, txt4 + ' → ' + texts()[0]);
+    P('场景4 取消：没有写库、没有 [edit] 日志', log4.length === 0, log4.join(' / ') || '无输出');
+
+    // ---------- 场景 5：输入纯空格 ----------
+    window.__promptQueue.push('   ');
+    takeLog();
+    const txt5 = texts()[0];
+    click(items()[0].querySelector('.edit-btn'));
+    let log5 = takeLog();
+    P('场景5 纯空格：被拦住，文本没变', texts()[0] === txt5, JSON.stringify(texts()[0]));
+    P('场景5 纯空格：没有写库', log5.length === 0, log5.join(' / ') || '无输出');
+
+    // ---------- 场景 6：输入空串 ----------
+    window.__promptQueue.push('');
+    takeLog();
+    click(items()[0].querySelector('.edit-btn'));
+    let log6 = takeLog();
+    P('场景6 空串：被拦住，文本没变', texts()[0] === txt5, JSON.stringify(texts()[0]));
+    P('场景6 空串：没有写库', log6.length === 0, log6.join(' / ') || '无输出');
+
+    // ---------- 场景 7：前后带空格的新文本，存进去要 trim 过 ----------
+    window.__promptQueue.push('  买两盒牛奶  ');
+    takeLog();
+    click(items()[0].querySelector('.edit-btn'));
+    takeLog();
+    P('场景7 首尾空格：存库前被 trim', !!byText('买两盒牛奶'),
+      JSON.stringify(stored().map(t => t.text)));
+
+    // ---------- 场景 8：改已完成的任务，completed 不能被冲掉 ----------
+    const doneItem = items().filter(li => li.classList.contains('done'))[0];
+    P('准备：存在一条已完成的任务', !!doneItem, doneItem ? doneItem.querySelector('span').textContent : '没有');
+    window.__promptQueue.push('写实验报告（改）');
+    takeLog();
+    click(doneItem.querySelector('.edit-btn'));
+    takeLog();
+    const t8 = byText('写实验报告（改）');
+    P('场景8 改已完成任务：文本改了', !!t8, JSON.stringify(stored().map(t => t.text)));
+    P('场景8 改已完成任务：completed 仍然是 true', !!t8 && t8.completed === true,
+      t8 ? 'completed=' + t8.completed : '没找到');
+    P('场景8 改已完成任务：界面上仍有 done 和删除线',
+      items().some(li => li.classList.contains('done') &&
+        li.querySelector('span').textContent === '写实验报告（改）'),
+      items().map(li => li.className || '-').join(' | '));
+
+    // ---------- 场景 9：点列表空白处 ----------
+    const beforeErr = window.__errors.length;
+    let threw = '';
+    try { click(document.querySelector('#todo-list')); } catch (err) { threw = err.message; }
+    P('场景9 点空白处：不抛异常、无新报错',
+      threw === '' && window.__errors.length === beforeErr, threw || '无异常');
+    P('场景9 点空白处：没弹编辑框', window.__promptArgs.length >= 0 && threw === '', '');
+
+    // ---------- 附加：委托结构没被破坏 ----------
+    const liBound = window.__bound.filter(s => s.indexOf('li') === 0).length;
+    P('附加 li 上仍然没有监听器', liBound === 0, 'li 绑定数 = ' + liBound);
+    P('附加 编辑按钮上也没有监听器',
+      window.__bound.filter(s => s.indexOf('button.edit-btn') === 0 || s.indexOf('button.del-btn') === 0).length === 0,
+      '列表内按钮绑定数 = ' + window.__bound.filter(s => s.indexOf('button.edit-btn') === 0 || s.indexOf('button.del-btn') === 0).length);
+
+    L.push('--- 当前列表 ---');
+    stored().forEach(t => L.push('  ' + (t.completed ? '[x] ' : '[ ] ') + t.text + '  (id=' + t.id + ')'));
+
+    document.getElementById('RESULT').textContent =
+        '===RESULT-EDIT===\n' + L.join('\n') + '\nPASS=' + pass + ' FAIL=' + fail + '\n===END===';
+    document.getElementById('console-view').textContent = L.join('\n');
+})();
+</script>
+</body>
+</html>

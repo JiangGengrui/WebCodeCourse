@@ -135,3 +135,18 @@ body {
 }
 
 .todo-list .del-btn:hover { text-decoration: underline; }
+
+/* 编辑按钮：中性灰，别跟删除一样红。
+   li 是 space-between 三列，加 margin-left:auto 把两个按钮一起推到右边 */
+.todo-list .edit-btn {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    color: #7a8899;
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+
+.todo-list .edit-btn:hover { color: #4874CB; }
