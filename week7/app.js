@@ -61,6 +61,13 @@ function render() {
         span.textContent = t.text;                   // 用 textContent，杜绝 XSS
         li.appendChild(span);
 
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'edit-btn';
+        editBtn.dataset.action = 'edit';             // ② 和删除一样，先写清「点我要干什么」
+        editBtn.textContent = '✎';
+        li.appendChild(editBtn);
+
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'del-btn';
@@ -114,6 +121,15 @@ function toggleTodo(id) {                            // 切换：map + 展开
     save(); render();
 }
 
+// 编辑：只换 text，其它字段（completed、id）靠 ...t 原样带过来。
+// 一开始我写的是 { id: t.id, text }，结果一改已完成的任务，打勾就没了 —— completed 被丢了。
+function updateTodo(id, text) {
+    console.log('[edit]', id, text);                 // 留一行日志，截图当证据用
+    todos = todos.map(t =>
+        sameId(t.id, id) ? { ...t, text } : t);
+    save(); render();
+}
+
 // ---------------- 记录 3：脱离 AI 手写 ----------------
 function clearCompleted() {                          // 删除所有已完成任务
     todos = todos.filter(t => !t.completed);
@@ -156,13 +172,24 @@ list.addEventListener('click', (e) => {
     const id = item.dataset.id;
     if (!id) return;                                 // ④ 防：li 上没有 data-id（如空态提示）
 
-    // 分流：删除与切换互斥，命中删除就不再切换
-    const delBtn = e.target.closest('[data-action="delete"]');
+    // 分流：删除 → 编辑 → 切换，三者互斥。靠 else 互斥，
+    // 不能写成两条独立的 if，否则删完还会接着执行下面的分支（任务 2 就是这么错的）。
+    const delBtn  = e.target.closest('[data-action="delete"]');
+    const editBtn = e.target.closest('[data-action="edit"]');
+
     if (delBtn && item.contains(delBtn)) {
         removeTodo(id);
-        return;
+    } else if (editBtn && item.contains(editBtn)) {
+        // 当前文本从数据里查，不从 DOM 里读：列表被筛选时 DOM 是不全的
+        const cur = todos.find(t => sameId(t.id, id));
+        const text = prompt('修改任务', cur ? cur.text : '');
+        if (text === null) return;                   // 点了取消 → 什么都不做
+        const v = text.trim();                       // 先 trim 再判断，纯空格也算空
+        if (v === '') return;                        // 空输入拦住，不写库
+        updateTodo(id, v);
+    } else {
+        toggleTodo(id);
     }
-    toggleTodo(id);
 });
 
 // 首屏渲染
