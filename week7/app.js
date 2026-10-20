@@ -1,8 +1,10 @@
 // ============================================================
-// app.js —— 待办事项 V2.0（第 3 步：状态切换、筛选与 clearCompleted）
+// app.js —— 待办事项 V2.1（第 8 周 · 事件委托重构 第 1 步）
 //
-// 到此为止完整口诀：改数据 → save → render
-// 三个操作全部「生成新数组」，不改原数组、也不改原对象。
+// 这一步只改「画」的那一半：
+//   render() 不再给 li 和按钮绑监听器，只把「我是谁」「点我要干什么」
+//   两个身份写进 DOM —— dataset.id 与 data-action。
+// 数据侧的三步没变：改数据 → save() → render()。
 // ============================================================
 
 const KEY = 'todos';                                 // ① 存储的键名
@@ -21,7 +23,7 @@ function save() {
 }
 
 // 本实验用 Date.now() 作 id；但同一毫秒内连续添加会拿到相同的值，
-// 一旦 id 重复，toggle/remove 里按 id 匹配就会一次改动多条。
+// 一旦 id 重复，按 id 匹配的操作就会一次改动多条。
 // 加一个「单调递增」兜底：时间戳比上次大就用时间戳，否则在上次基础上 +1。
 let lastId = 0;
 function nextId() {
@@ -41,7 +43,7 @@ function load() {
     }
 }
 
-// ---------------- ⑥ render（过滤 → 建元素 → 挂载） ----------------
+// ---------------- ⑥ render：只负责「画」 ----------------
 function render() {
     list.innerHTML = '';                             // 清空 → 整表重画
 
@@ -52,7 +54,7 @@ function render() {
 
     shown.forEach(t => {
         const li = document.createElement('li');
-        li.dataset.id = t.id;                        // li 记住自己的 id
+        li.dataset.id = t.id;                        // ① 让节点记住「我是哪一条」
         if (t.completed) li.classList.add('done');
 
         const span = document.createElement('span');
@@ -62,18 +64,14 @@ function render() {
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'del-btn';
-        delBtn.textContent = '×';
-        delBtn.addEventListener('click', (e) => {
-            e.stopPropagation();                     // 防止顺带触发 li 的点击
-            removeTodo(t.id);
-        });
+        delBtn.dataset.action = 'delete';            // ② 让节点记住「点我要干什么」
+        const icon = document.createElement('span'); // 按钮里是一个图标 span，
+        icon.textContent = '×';                      // 点到的可能是它而不是按钮
+        delBtn.appendChild(icon);
         li.appendChild(delBtn);
 
-        // 箭头函数捕获 t.id，不用 var i 记下标
-        li.addEventListener('click', () => toggleTodo(t.id));
-
-        list.appendChild(li);                        // 每次 render 都新建 li，
-    });                                              // 旧元素连同旧监听一起丢弃
+        list.appendChild(li);                        // 这里不再 addEventListener
+    });
 
     if (shown.length === 0) {
         const li = document.createElement('li');
