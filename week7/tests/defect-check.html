@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>任务2 · 缺陷自动复现（点删除后多调用一次 toggle）</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+    #RESULT { display: none; }
+    #console-view {
+        max-width: 40rem; margin: 1rem auto 0; padding: .75rem 1rem;
+        background: #1e1e1e; color: #d4d4d4; font: 12px/1.7 Consolas, monospace;
+        border-radius: 6px; white-space: pre-wrap;
+    }
+</style>
+</head>
+<body>
+
+<main class="todo-card">
+    <h1>缺陷复现（自动点击一次「删除」）</h1>
+    <div class="todo-input">
+        <input type="text" id="todo-input" placeholder="输入待办事项">
+        <button type="button" id="add-btn">添加</button>
+    </div>
+    <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">全部</button>
+        <button type="button" class="filter-btn" data-filter="active">未完成</button>
+        <button type="button" class="filter-btn" data-filter="done">已完成</button>
+        <span id="todo-count" class="todo-count"></span>
+    </div>
+    <ul id="todo-list" class="todo-list"></ul>
+</main>
+
+<pre id="RESULT"></pre>
+<div id="console-view"></div>
+
+<script>
+window.__log = [];
+(function () {
+    const _log = console.log;
+    console.log = function () {
+        window.__log.push([].slice.call(arguments).join(' '));
+        _log.apply(console, arguments);
+    };
+})();
+</script>
+
+<script src="defect-no-else.js"></script>
+
+<script>
+(function () {
+    const L = [];
+    let pass = 0, fail = 0;
+    const P = (n, c, e) => {
+        c ? pass++ : fail++;
+        L.push((c ? 'PASS  ' : 'FAIL  ') + n + (e !== undefined ? '  → ' + e : ''));
+    };
+    const items = () => [...document.querySelectorAll('#todo-list li')]
+        .filter(li => !li.classList.contains('todo-empty'));
+    const click = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    input.value = '买牛奶'; addBtn.click();
+    input.value = '写实验报告'; addBtn.click();
+    input.value = '跑步 3 公里'; addBtn.click();
+    P('准备 3 条任务', items().length === 3, items().map(li => li.querySelector('span').textContent).join(' | '));
+
+    window.__log.length = 0;
+    const target = items()[0];
+    const targetId = target.dataset.id;
+    click(target.querySelector('.del-btn'));
+
+    const logs = window.__log.slice();
+    L.push('--- 点击一次「删除」后的控制台输出 ---');
+    logs.forEach(s => L.push('  ' + s));
+
+    P('页面表现：该条确实被删掉了（看起来正常）', items().length === 2, '3 → ' + items().length);
+    P('证据：delete 只调用 1 次', logs.filter(s => s.indexOf('[delete]') === 0).length === 1,
+      logs.filter(s => s.indexOf('[delete]') === 0).join(' / '));
+    P('证据：toggle 也被调用了 1 次（多出来的那行）',
+      logs.filter(s => s.indexOf('[toggle]') === 0).length === 1,
+      logs.filter(s => s.indexOf('[toggle]') === 0).join(' / '));
+    P('证据：两次调用用的是同一个 id', logs.length === 2 && logs[0].split(' ')[1] === logs[1].split(' ')[1],
+      logs.map(s => s.split(' ')[1]).join(' = '));
+
+    L.push('');
+    L.push('结论：删除与切换没有被分流，delBtn 命中后没有 return/else，');
+    L.push('      deleteTodo(id) 执行完继续往下走了 toggleTodo(id)。');
+    L.push('      本次被删的 id = ' + targetId + '，toggle 时它已不在 todos 里，');
+    L.push('      所以数据没被改坏 —— 这正是「页面没崩 ≠ 没问题」的原因。');
+
+    document.getElementById('RESULT').textContent =
+        '===RESULT-DEFECT===\n' + L.join('\n') + '\nPASS=' + pass + ' FAIL=' + fail + '\n===END===';
+    document.getElementById('console-view').textContent = L.join('\n');
+})();
+</script>
+</body>
+</html>

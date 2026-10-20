@@ -11,6 +11,7 @@
 | 目录 | 内容 |
 | --- | --- |
 | `week7/` | 第 7 周实验：待办事项 V2.0 —— 数据驱动重构 + localStorage 持久化 + 状态筛选 |
+| `week7/`（W8） | 第 8 周实验：在同一套代码上把交互改为**事件委托**，并做一次 AI-2 调试挑战 |
 
 后续每周的实现会继续以 `weekN/` 的形式追加。
 
@@ -91,3 +92,69 @@ chrome --headless=new --dump-dom http://localhost:8000/tests/self-check-1.html
 ```bash
 git log --graph --oneline --all
 ```
+
+第 8 周在同一目录上继续，分支 `feature/v2-event-delegation`（见下节）。
+
+### week8 —— 事件委托重构
+
+W7 的列表交互是**循环绑定**：`render()` 里每建一个 `li` 就 `addEventListener` 一次，
+删除按钮上还靠 `stopPropagation()` 挡住冒泡。代价是监听器跟着节点的生死一起维护 ——
+每次重画都要重新绑一遍，新增节点必须走 `render()` 才能拥有交互。
+
+W8 把交互改成**父容器统一接管**：
+
+| | W7：循环绑定 | W8：事件委托 |
+| --- | --- | --- |
+| 监听器在哪 | 每个 `li` 一个 + 每个删除按钮一个 | `ul#todo-list` 上只绑一个 |
+| 重画之后 | 监听器随 `li` 一起消失 | 不受影响，新节点无需重绑 |
+| 定位哪一条 | 闭包捕获 `t.id` | `e.target.closest('li').dataset.id` |
+| 区分操作 | 按钮上 `stopPropagation()` | `[data-action]` 判断 + `if / else` 分流 |
+
+三个关键点：
+
+1. **渲染时写身份**：`li.dataset.id = t.id`、`delBtn.dataset.action = 'delete'`。
+   委托之后处理函数挂在父容器上，拿不到那个 `t`，必须让节点自己记住「我是谁、点我要干什么」。
+2. **交给父容器**：`list.addEventListener('click', ...)` 绑在不会被重画的 `ul` 上，
+   靠冒泡收到来自任意后代的事件。
+3. **边界防御（顺序不能反）**：
+   ```js
+   if (!(e.target instanceof Element)) return;   // ① 不是元素
+   const item = e.target.closest('li');
+   if (!item || !list.contains(item)) return;    // ② 点空白 → null；③ 越界
+   const id = item.dataset.id;
+   if (!id) return;                              // ④ 没有 data-id（如空态提示）
+   ```
+   空值要挡在「读属性」之前，否则点列表空白处会抛
+   `Cannot read properties of null (reading 'dataset')`。
+
+另外补了一处 `dataset` 的坑：**`dataset.id` 读出来永远是字符串**，而 `todos` 里的 `id` 是
+`Date.now()` 得到的数字。直接写 `t.id !== id` 会永远不相等 —— 删除删不掉、切换没反应，
+而且**不报错**。所以统一用 `sameId()` 比较前先归一化成字符串。
+
+#### 任务 2：AI-2 调试挑战
+
+`tests/defect-no-else.js` 是缺陷版（与 `app.js` 只差一处：删除分支少了 `else` / `return`），
+`tests/defect-demo.html` 是给人用浏览器手动点、看控制台的页面。
+
+实测复现：点一次「删除」，控制台输出两行 ——
+
+```
+[delete] 1792478904610
+[toggle] 1792478904610     ← 多出来的
+```
+
+页面看上去完全正常（那条确实被删掉了），因为 `toggleTodo` 执行时该 id 已经不在 `todos` 里，
+`map` 找不到匹配项，只是白跑一遍 `save()` + `render()`。
+**根因是「操作分流缺失」**：`if (delBtn) { deleteTodo(id); }` 后面没有 `else`，
+删除之后继续往下执行了 `toggleTodo(id)`。修复只需把第二句放进 `else`，或删除后 `return`。
+
+#### 新增的自检页
+
+| 文件 | 作用 |
+| --- | --- |
+| `tests/delegation-check.html` | 五个场景：点文字只切换 / 点按钮只删除 / 点按钮里的图标只删除 / 点空白处不报错 / 动态新增后能直接交互；另外统计整页 `addEventListener` 的调用方，验证 `li` 上绑定数为 0 |
+| `tests/defect-demo.html` | 缺陷版页面，手工点删除看控制台（截图为证） |
+| `tests/defect-check.html` | 缺陷版的自动复现，断言「delete 调一次、toggle 也调一次、id 相同」 |
+
+实测结果：`delegation-check` 17 项全 PASS；`defect-check` 5 项全 PASS（缺陷稳定复现）。
+

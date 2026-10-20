@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>任务2 · 缺陷复现（缺 else 分流）</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+    body { padding-bottom: 3rem; }
+    .hint {
+        max-width: 40rem; margin: 1rem auto 0; padding: .75rem 1rem;
+        background: #fff8e6; border-left: 4px solid #e6a23c;
+        font-size: .875rem; line-height: 1.7; color: #6b5320;
+    }
+    .hint code { background: #fdf0d5; padding: 0 .2rem; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<main class="todo-card">
+    <h1>待办事项（缺陷版：删除后还会切换）</h1>
+    <div class="todo-input">
+        <input type="text" id="todo-input" placeholder="输入待办事项，回车或点添加">
+        <button type="button" id="add-btn">添加</button>
+    </div>
+    <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">全部</button>
+        <button type="button" class="filter-btn" data-filter="active">未完成</button>
+        <button type="button" class="filter-btn" data-filter="done">已完成</button>
+        <span id="todo-count" class="todo-count"></span>
+    </div>
+    <ul id="todo-list" class="todo-list"></ul>
+</main>
+
+<div class="hint">
+    <strong>怎么用：</strong>按 F12 打开 DevTools 的 Console 面板，在页面上点任意一条的
+    <strong>删除（×）</strong>按钮。<br>
+    页面看起来完全正常（那条确实消失了），但控制台会连续打印两行：<br>
+    <code>[delete] 1739…</code> 和 <code>[toggle] 1739…</code> —— 多出来的第二行就是缺陷。<br>
+    根因：<code>if (delBtn) { deleteTodo(id); }</code> 后面没有 <code>else</code>，
+    删除完继续往下执行了 <code>toggleTodo(id)</code>。
+</div>
+
+<script src="defect-no-else.js"></script>
+</body>
+</html>

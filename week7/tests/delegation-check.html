@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>任务1 自检 · 事件委托五个场景</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+    #RESULT { display: none; }
+    #console-view {
+        max-width: 40rem; margin: 1rem auto 0; padding: .75rem 1rem;
+        background: #1e1e1e; color: #d4d4d4; font: 12px/1.7 Consolas, monospace;
+        border-radius: 6px; white-space: pre-wrap;
+    }
+</style>
+</head>
+<body>
+
+<main class="todo-card">
+    <h1>待办事项 V2.1 · 事件委托自检</h1>
+    <div class="todo-input">
+        <input type="text" id="todo-input" placeholder="输入待办事项，回车或点添加">
+        <button type="button" id="add-btn">添加</button>
+    </div>
+    <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">全部</button>
+        <button type="button" class="filter-btn" data-filter="active">未完成</button>
+        <button type="button" class="filter-btn" data-filter="done">已完成</button>
+        <span id="todo-count" class="todo-count"></span>
+    </div>
+    <ul id="todo-list" class="todo-list"></ul>
+</main>
+
+<pre id="RESULT"></pre>
+<div id="console-view"></div>
+
+<!-- 在 app.js 之前挂钩：统计 addEventListener 的调用方，并采集 console.log -->
+<script>
+window.__bound = [];
+window.__errors = [];
+window.__log = [];
+(function () {
+    const _add = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function (type, fn, opt) {
+        const t = this;
+        let name = String(t);
+        if (t === window) name = 'window';
+        else if (t && t.tagName) {
+            name = t.tagName.toLowerCase();
+            if (t.id) name += '#' + t.id;
+            if (typeof t.className === 'string' && t.className.trim()) {
+                name += '.' + t.className.trim().split(/\s+/).join('.');
+            }
+        }
+        window.__bound.push(name + ' ← ' + type);
+        return _add.call(this, type, fn, opt);
+    };
+    const _log = console.log;
+    console.log = function () {
+        window.__log.push([].slice.call(arguments).join(' '));
+        _log.apply(console, arguments);
+    };
+    window.addEventListener('error', function (e) {
+        window.__errors.push(e.message);
+    });
+})();
+</script>
+
+<script src="../app.js"></script>
+
+<script>
+(function () {
+    const L = [];
+    let pass = 0, fail = 0;
+    const P = (name, cond, extra) => {
+        cond ? pass++ : fail++;
+        L.push((cond ? 'PASS  ' : 'FAIL  ') + name + (extra !== undefined ? '  → ' + extra : ''));
+    };
+
+    const items = () => [...document.querySelectorAll('#todo-list li')]
+        .filter(li => !li.classList.contains('todo-empty'));
+    const texts = () => items().map(li => li.querySelector('span').textContent);
+    const add = (v) => { input.value = v; addBtn.click(); };
+    const click = (el) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    const takeLog = () => { const a = window.__log.slice(); window.__log.length = 0; return a; };
+
+    // 给两个操作插桩，用来判断「一次点击到底调用了谁」
+    const _rm = window.removeTodo, _tg = window.toggleTodo;
+    window.removeTodo = function (id) { window.__log.push('[delete] ' + id); return _rm(id); };
+    window.toggleTodo = function (id) { window.__log.push('[toggle] ' + id); return _tg(id); };
+
+    // ---------- 准备数据 ----------
+    add('买牛奶');
+    add('写实验报告');
+    add('跑步 3 公里');
+    P('三轮 render 后共 3 项', items().length === 3, texts().join(' | '));
+
+    // ① li 上到底有没有监听器（事件委托的核心证据）
+    const liBound = window.__bound.filter(s => s.indexOf('li') === 0);
+    P('① li 上没有绑定任何监听器', liBound.length === 0, 'li 绑定数 = ' + liBound.length);
+
+    // ---------- 场景 1：点击任务文字，只切换 ----------
+    takeLog();
+    click(items()[1].querySelector('span'));
+    let log1 = takeLog();
+    P('场景1 点击任务文字：完成状态翻转',
+      JSON.parse(localStorage.getItem('todos'))[1].completed === true,
+      'completed=' + JSON.parse(localStorage.getItem('todos'))[1].completed);
+    P('场景1 点击任务文字：只调用 toggle 一次',
+      log1.length === 1 && log1[0].indexOf('[toggle]') === 0, log1.join(' / '));
+
+    // ---------- 场景 2：点击删除按钮本体，只删除 ----------
+    takeLog();
+    const before2 = items().length;
+    click(items()[0].querySelector('.del-btn'));
+    let log2 = takeLog();
+    P('场景2 点击删除按钮：条数 -1', items().length === before2 - 1, before2 + ' → ' + items().length);
+    P('场景2 点击删除按钮：只调用 delete 一次',
+      log2.length === 1 && log2[0].indexOf('[delete]') === 0, log2.join(' / '));
+
+    // ---------- 场景 3：点击删除按钮里的图标 / 文字 ----------
+    takeLog();
+    const before3 = items().length;
+    click(items()[0].querySelector('.del-btn span'));
+    let log3 = takeLog();
+    P('场景3 点按钮里的图标：条数 -1', items().length === before3 - 1, before3 + ' → ' + items().length);
+    P('场景3 点按钮里的图标：只调用 delete 一次',
+      log3.length === 1 && log3[0].indexOf('[delete]') === 0, log3.join(' / '));
+
+    // ---------- 场景 4：点击列表空白处 ----------
+    takeLog();
+    const before4 = items().length;
+    const beforeErr = window.__errors.length;
+    let threw = '';
+    try {
+        click(document.querySelector('#todo-list'));
+    } catch (err) {
+        threw = err.message;
+    }
+    let log4 = takeLog();
+    P('场景4 点列表空白处：不抛异常', threw === '', threw || '无异常');
+    P('场景4 点列表空白处：控制台无新报错', window.__errors.length === beforeErr, '错误数=' + window.__errors.length);
+    P('场景4 点列表空白处：数据与界面都没变',
+      items().length === before4 && log4.length === 0, log4.join(' / ') || '无操作调用');
+
+    // ---------- 场景 5：动态新增后能直接交互（无需重新绑定） ----------
+    add('新增的一条');
+    const liBound2 = window.__bound.filter(s => s.indexOf('li') === 0).length;
+    P('场景5 新增条目时没有补绑监听器', liBound2 === 0, 'li 绑定数 = ' + liBound2);
+    takeLog();
+    const last = items()[items().length - 1];
+    click(last.querySelector('span'));
+    let log5 = takeLog();
+    const newDone = JSON.parse(localStorage.getItem('todos'))
+        .filter(t => t.text === '新增的一条')[0].completed;
+    P('场景5 新增条目点击：状态正确翻转', newDone === true, 'completed=' + newDone);
+    P('场景5 新增条目点击：走的是同一个监听器',
+      log5.length === 1 && log5[0].indexOf('[toggle]') === 0, log5.join(' / '));
+
+    // ---------- 附加：空态提示 li 没有 data-id，点了不能报错 ----------
+    // 每删一条 render 都会重建 li，所以不能拿旧快照循环点（旧节点已脱离 DOM，
+    // 正好被 list.contains(item) 那道防御挡住），要每次重新取当前的第一条。
+    let guard = 0;
+    while (items().length > 0 && guard++ < 20) {
+        click(items()[0].querySelector('.del-btn'));
+    }
+    P('清空后出现空态提示', items().length === 0, '剩余 ' + items().length + ' 项');
+    const beforeErr2 = window.__errors.length;
+    let threw2 = '';
+    try {
+        click(document.querySelector('#todo-list li'));
+    } catch (err) {
+        threw2 = err.message;
+    }
+    P('附加 点空态提示：不抛异常', threw2 === '', threw2 || '无异常');
+    P('附加 点空态提示：无新报错', window.__errors.length === beforeErr2, '错误数=' + window.__errors.length);
+
+    // ---------- 整页监听器清单 ----------
+    L.push('--- 整页 addEventListener 调用清单（' + window.__bound.length + ' 次）---');
+    window.__bound.forEach(s => L.push('  ' + s));
+
+    document.getElementById('RESULT').textContent =
+        '===RESULT-S3===\n' + L.join('\n') + '\nPASS=' + pass + ' FAIL=' + fail + '\n===END===';
+    document.getElementById('console-view').textContent = L.join('\n');
+})();
+</script>
+</body>
+</html>
