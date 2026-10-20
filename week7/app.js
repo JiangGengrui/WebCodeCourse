@@ -1,8 +1,10 @@
 // ============================================================
-// app.js —— 待办事项 V2.0（第 3 步：状态切换、筛选与 clearCompleted）
+// app.js —— 待办事项 V2.1（第 8 周 · 事件委托重构 第 1 步）
 //
-// 到此为止完整口诀：改数据 → save → render
-// 三个操作全部「生成新数组」，不改原数组、也不改原对象。
+// 这一步只改「画」的那一半：
+//   render() 不再给 li 和按钮绑监听器，只把「我是谁」「点我要干什么」
+//   两个身份写进 DOM —— dataset.id 与 data-action。
+// 数据侧的三步没变：改数据 → save() → render()。
 // ============================================================
 
 const KEY = 'todos';                                 // ① 存储的键名
@@ -21,7 +23,7 @@ function save() {
 }
 
 // 本实验用 Date.now() 作 id；但同一毫秒内连续添加会拿到相同的值，
-// 一旦 id 重复，toggle/remove 里按 id 匹配就会一次改动多条。
+// 一旦 id 重复，按 id 匹配的操作就会一次改动多条。
 // 加一个「单调递增」兜底：时间戳比上次大就用时间戳，否则在上次基础上 +1。
 let lastId = 0;
 function nextId() {
@@ -41,7 +43,7 @@ function load() {
     }
 }
 
-// ---------------- ⑥ render（过滤 → 建元素 → 挂载） ----------------
+// ---------------- ⑥ render：只负责「画」 ----------------
 function render() {
     list.innerHTML = '';                             // 清空 → 整表重画
 
@@ -52,7 +54,7 @@ function render() {
 
     shown.forEach(t => {
         const li = document.createElement('li');
-        li.dataset.id = t.id;                        // li 记住自己的 id
+        li.dataset.id = t.id;                        // ① 让节点记住「我是哪一条」
         if (t.completed) li.classList.add('done');
 
         const span = document.createElement('span');
@@ -62,18 +64,14 @@ function render() {
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'del-btn';
-        delBtn.textContent = '×';
-        delBtn.addEventListener('click', (e) => {
-            e.stopPropagation();                     // 防止顺带触发 li 的点击
-            removeTodo(t.id);
-        });
+        delBtn.dataset.action = 'delete';            // ② 让节点记住「点我要干什么」
+        const icon = document.createElement('span'); // 按钮里是一个图标 span，
+        icon.textContent = '×';                      // 点到的可能是它而不是按钮
+        delBtn.appendChild(icon);
         li.appendChild(delBtn);
 
-        // 箭头函数捕获 t.id，不用 var i 记下标
-        li.addEventListener('click', () => toggleTodo(t.id));
-
-        list.appendChild(li);                        // 每次 render 都新建 li，
-    });                                              // 旧元素连同旧监听一起丢弃
+        list.appendChild(li);                        // 这里不再 addEventListener
+    });
 
     if (shown.length === 0) {
         const li = document.createElement('li');
@@ -98,14 +96,21 @@ function addTodo(text) {                             // 添加：展开
     save(); render();
 }
 
+// dataset 读出来永远是字符串，而 todos 里的 id 是数字（Date.now()）。
+// 直接写 t.id !== id 会「永远不相等」—— 删除删不掉、切换没反应，
+// 而且不报错，是最难查的一类静默失败。统一比较前先归一化成字符串。
+function sameId(a, b) {
+    return String(a) === String(b);
+}
+
 function removeTodo(id) {                            // 删除：filter
-    todos = todos.filter(t => t.id !== id);
+    todos = todos.filter(t => !sameId(t.id, id));
     save(); render();
 }
 
 function toggleTodo(id) {                            // 切换：map + 展开
     todos = todos.map(t =>
-        t.id === id ? { ...t, completed: !t.completed } : t);
+        sameId(t.id, id) ? { ...t, completed: !t.completed } : t);
     save(); render();
 }
 
@@ -136,6 +141,29 @@ input.addEventListener('keydown', (e) => {
 
 document.querySelectorAll('.filter-btn').forEach(b =>
     b.addEventListener('click', () => setFilter(b.dataset.filter)));
+
+// ---------------- ⑧ 事件委托：整个列表只留这一个监听器 ----------------
+// 绑在 ul 上，而不是绑在每个 li 上：
+//   · ul 不会被 render() 重画，监听器不会跟着丢
+//   · 新增的 li 天然被覆盖，不需要补绑
+// 靠冒泡收到事件后，用 e.target 判断「真正被点的是谁」。
+list.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element)) return;      // ① 防：target 不是元素
+
+    const item = e.target.closest('li');
+    if (!item || !list.contains(item)) return;       // ② 防：点空白 → null；③ 防：越界
+
+    const id = item.dataset.id;
+    if (!id) return;                                 // ④ 防：li 上没有 data-id（如空态提示）
+
+    // 分流：删除与切换互斥，命中删除就不再切换
+    const delBtn = e.target.closest('[data-action="delete"]');
+    if (delBtn && item.contains(delBtn)) {
+        removeTodo(id);
+        return;
+    }
+    toggleTodo(id);
+});
 
 // 首屏渲染
 render();
