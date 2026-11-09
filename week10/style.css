@@ -1,0 +1,152 @@
+/* ============================================================
+   style.css —— 待办事项 V2.0 样式
+   在 V1.0 基础上增加：筛选栏、计数、已完成样式
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    background-color: #f3f6fb;
+    color: #1f2d3d;
+}
+
+.todo-card {
+    max-width: 40rem;
+    margin: 0 auto;
+    background-color: #fff;
+    border: 1px solid #dde6f5;
+    border-radius: 8px;
+    padding: 1.25rem 1.25rem 1rem;
+    box-shadow: 0 1px 3px rgba(24, 60, 120, .08);
+}
+
+.todo-card h1 {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    color: #4874CB;
+}
+
+/* 输入区 */
+.todo-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.todo-input input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #dde6f5;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+
+.todo-input button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    background-color: #4874CB;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.todo-input button:hover { background-color: #2f5bab; }
+
+/* 筛选栏 */
+.filters {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eef2f8;
+}
+
+.filter-btn {
+    padding: 0.25rem 0.7rem;
+    border: 1px solid #dde6f5;
+    border-radius: 999px;
+    background-color: #fff;
+    color: #4874CB;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.filter-btn.active {
+    background-color: #4874CB;
+    border-color: #4874CB;
+    color: #fff;
+}
+
+.todo-count {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: #8a97a8;
+}
+
+/* 列表 */
+.todo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.todo-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid #eef2f8;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.todo-list li:last-child { border-bottom: none; }
+
+.todo-list li span { word-break: break-word; }
+
+/* 已完成：删除线 + 变灰 */
+.todo-list li.done span {
+    text-decoration: line-through;
+    color: #98a4b3;
+}
+
+.todo-list .todo-empty {
+    color: #999;
+    text-align: center;
+    justify-content: center;
+    cursor: default;
+}
+
+.todo-list .del-btn {
+    border: none;
+    background: transparent;
+    color: #c0392b;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+
+.todo-list .del-btn:hover { text-decoration: underline; }
+
+/* 编辑按钮：中性灰，别跟删除一样红。
+   li 是 space-between 三列，加 margin-left:auto 把两个按钮一起推到右边 */
+.todo-list .edit-btn {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    color: #7a8899;
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+
+.todo-list .edit-btn:hover { color: #4874CB; }
