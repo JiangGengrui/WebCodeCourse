@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办事项 V3.1 —— 搜索与拖拽</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<main class="todo-card">
+    <h1>待办事项 V3.1</h1>
+
+    <div class="todo-input">
+        <input type="text" id="todo-input" placeholder="输入待办事项，回车或点添加">
+        <button type="button" id="add-btn">添加</button>
+    </div>
+
+    <!-- 功能点 1：关键字搜索。独立于 todos 的第二份状态，只影响"显示什么" -->
+    <div class="search-bar">
+        <input type="search" id="search-input" placeholder="搜索任务关键字（实时过滤）">
+        <button type="button" id="search-clear" title="清空关键字">清空</button>
+    </div>
+
+    <div class="filters">
+        <button type="button" class="filter-btn active" data-filter="all">全部</button>
+        <button type="button" class="filter-btn" data-filter="active">未完成</button>
+        <button type="button" class="filter-btn" data-filter="completed">已完成</button>
+        <!-- 格式固定为「当前视图 X 条 / 总计 Y 条」，统计口径见 main.ts 的 render -->
+        <span id="todo-count" class="todo-count"></span>
+    </div>
+
+    <!-- 功能点 2：拖拽排序。draggable 由 render 逐条加在 li 上 -->
+    <ul id="todo-list" class="todo-list"></ul>
+    <p class="drag-hint">提示：按住任意一条任务拖动即可调整顺序，顺序会自动保存。</p>
+</main>
+
+<!-- 用 Vite 开发服务器打开：npm run dev；直接双击这个文件会白屏（ESM 被 CORS 挡） -->
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
