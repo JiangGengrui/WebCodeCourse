@@ -42,5 +42,30 @@
 </div>
 
 <script src="defect-no-else.js"></script>
+
+<div id="banner" style="max-width:40rem;margin:1rem auto 0;padding:.75rem 1rem;
+     background:#fdecea;border-left:4px solid #c0392b;font-size:.875rem;
+     line-height:1.7;color:#8a2118;" hidden></div>
+<script>
+// 兜底：脚本挂了或者 storage 被禁用时，别让页面变成「点了没反应」的哑页面
+(function () {
+    function warn(msg) {
+        var b = document.getElementById('banner');
+        b.hidden = false;
+        b.innerHTML = msg;
+    }
+    window.addEventListener('error', function (e) {
+        if (e.target && e.target.tagName === 'SCRIPT') {
+            warn('外部脚本 <code>' + e.target.src + '</code> 加载失败：'
+                 + '请确认 defect-no-else.js 和本页面在同一个目录下。');
+        } else if (e.message) {
+            warn('脚本报错：<code>' + e.message + '</code>');
+        }
+    }, true);
+    if (typeof addTodo !== 'function') {
+        warn('脚本没有执行成功（defect-no-else.js 未加载），所以添加和删除都不会有反应。');
+    }
+})();
+</script>
 </body>
 </html>
