@@ -1,0 +1,247 @@
+/* ============================================================
+   style.css —— 待办事项 V4.0（W12）
+   V2.0 的配色全部抽成 CSS 变量，深色主题只覆盖变量、不重写规则：
+   组件里的 class 一个都不用改，这就是「主题」和「样式」分家的好处。
+   ============================================================ */
+
+/* 浅色（默认）：变量定义在 :root 上 */
+:root {
+    --bg: #f3f6fb;
+    --fg: #1f2d3d;
+    --card-bg: #ffffff;
+    --card-border: #dde6f5;
+    --card-shadow: 0 1px 3px rgba(24, 60, 120, .08);
+    --accent: #4874CB;
+    --accent-hover: #2f5bab;
+    --accent-fg: #ffffff;
+    --divider: #eef2f8;
+    --muted: #8a97a8;
+    --done: #98a4b3;
+    --danger: #c0392b;
+    --dashed: #c9d6e8;
+    color-scheme: light;
+}
+
+/* 深色：只换变量值。选择器挂在 <html data-theme="dark"> 上，
+   由 ThemeProvider 的 Effect 写进去 —— CSS 侧完全不知道 React 的存在。 */
+:root[data-theme='dark'] {
+    --bg: #10161f;
+    --fg: #e6edf7;
+    --card-bg: #1a2230;
+    --card-border: #2c3a4d;
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+    --accent: #7aa2e8;
+    --accent-hover: #9dbcf2;
+    --accent-fg: #0e1420;
+    --divider: #253143;
+    --muted: #93a2b5;
+    --done: #6b7a8c;
+    --danger: #e57368;
+    --dashed: #3a4a60;
+    color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--fg);
+    /* 切换主题时给个过渡，避免整屏硬闪 */
+    transition: background-color .25s ease, color .25s ease;
+}
+
+.todo-card {
+    max-width: 40rem;
+    margin: 0 auto;
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 1.25rem 1.25rem 1rem;
+    box-shadow: var(--card-shadow);
+    transition: background-color .25s ease, border-color .25s ease;
+}
+
+/* 标题行：左边标题、右边主题切换按钮 */
+.todo-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.todo-head h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--accent);
+}
+
+/* 消费者 ①：ThemeToggle 的按钮 */
+.theme-toggle {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    background-color: transparent;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.theme-toggle:hover { border-color: var(--accent); }
+
+/* 输入区 */
+.todo-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.todo-input input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    background-color: var(--card-bg);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.todo-input button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--accent);
+    color: var(--accent-fg);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.todo-input button:hover { background-color: var(--accent-hover); }
+
+/* 筛选栏 */
+.filters {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--divider);
+}
+
+.filter-btn {
+    padding: 0.25rem 0.7rem;
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    background-color: var(--card-bg);
+    color: var(--accent);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+}
+
+.filter-btn.active {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-fg);
+}
+
+.todo-count {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+/* 列表 */
+.todo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.todo-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--divider);
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.todo-list li:last-child { border-bottom: none; }
+
+.todo-list li span { word-break: break-word; }
+
+/* 已完成：删除线 + 变灰 */
+.todo-list li.done span {
+    text-decoration: line-through;
+    color: var(--done);
+}
+
+.todo-list .todo-empty {
+    color: var(--muted);
+    text-align: center;
+    justify-content: center;
+    cursor: default;
+}
+
+.todo-list .del-btn {
+    border: none;
+    background: transparent;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+
+.todo-list .del-btn:hover { text-decoration: underline; }
+
+/* 编辑按钮：中性灰，别跟删除一样红。
+   li 是 space-between 三列，加 margin-left:auto 把两个按钮一起推到右边 */
+.todo-list .edit-btn {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    padding: 0 0.25rem;
+}
+
+.todo-list .edit-btn:hover { color: var(--accent); }
+
+/* 清除已完成（V4.0 新增）：只在存在已完成项时才渲染，
+   样式做得低调一点，别跟「添加」抢主按钮的位置 */
+.clear-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.8rem;
+    padding: 0.45rem;
+    border: 1px dashed var(--dashed);
+    border-radius: 6px;
+    background-color: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.clear-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* 消费者 ②：TodoApp 页脚提示，验收时用来确认 Context 的 value 真的变了 */
+.theme-now {
+    margin: 0.9rem 0 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: right;
+}
