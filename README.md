@@ -1,4 +1,4 @@
-# WebCodeCourse
+# szu-web-course
 
 深圳大学《基于 Web 的编程》课程代码仓库，个人课程练习。
 
@@ -10,6 +10,13 @@
 | --- | --- |
 | `week7/` | 第 7 周实验：待办事项 V2.0 —— 数据驱动重构 + localStorage 持久化 + 状态筛选 |
 | `week7/`（W8） | 第 8 周实验：在同一套代码上把交互改为**事件委托**，并做一次 AI-2 调试挑战 |
+| `week9/` | 第 9 周实验：TypeScript 重写（Vite + Vitest + `tsc --noEmit`），业务逻辑与 DOM 解耦 |
+| `week10/` | 第 10 周实验：V3.0 工程化收尾 —— `src/` + `tests/` 分层、ESLint + Prettier、构建与测试流水线 |
+| `week11/` | 第 11 周实验：V4.0 React 组件化重构，拆成 Form / List / Item / App 四个组件 |
+| `week12/` | V3.1 —— 实验二 Part 3：关键字搜索、实时统计、HTML5 拖拽排序与持久化 |
+| `week12-context/` | 第 12 周 AI 协作日志：V4.0 Context 主题切换（light / dark）+ `useEffect` 惰性初始化持久化 |
+
+> `week12/` 与 `week12-context/` 是两个不同作业：前者是实验二的 V3.1 迭代，后者是第 12 周协作日志的 V4.0（Context 主题）。目录名以 `-context` 后缀区分，避免互相覆盖。
 
 后续每周的实现会继续以 `weekN/` 的形式追加。
 
